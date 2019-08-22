@@ -100,7 +100,7 @@ clean :
 
 $(DDR_BLOB) : $(TOP_DIR)/ddrgen$(UMA_DOT_EXE) $(DDR_MACRO_LIST) blacklist $(wildcard overrides*)
 	@echo "Running ddrgen to generate $(notdir $@) and $(notdir $(DDR_SUPERSET_FILE))"
-	@$(DDR_LIB_PATH) $(TOP_DIR)/ddrgen $(DDR_OPTIONS) \
+	$(DDR_LIB_PATH) $(TOP_DIR)/ddrgen $(DDR_OPTIONS) \
 		$(DDR_INPUT_FILES)
 <#if uma.spec.type.zos>
 	chtag -t -c ISO8859-1 $(DDR_SUPERSET_FILE)
