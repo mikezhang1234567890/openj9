@@ -248,5 +248,6 @@ jint JNICALL snmp001(agentEnv * agent_env, char * args);
 jint JNICALL soae001(agentEnv * agent_env, char * args);
 jint JNICALL gsp001(agentEnv *agent_env, char *args);
 jint JNICALL ee001(agentEnv *agent_env, char *args);
+jint JNICALL gcp002(agentEnv *agent_env, char *args);
 
 #endif /*JVMTI_TEST_H_*/

@@ -39,7 +39,7 @@
 		<command>$(ADD_JVM_LIB_DIR_TO_LIBPATH) \
 	$(JAVA_COMMAND) $(JVM_OPTIONS) -Xshareclasses:none \
 	-DTEST_ROOT=$(Q)$(TEST_RESROOT)$(Q) \
-	-DJAR=$(Q)$(TEST_RESROOT)$(D)jvmtitest.jar$(Q) \
+	-DJAR=$(Q)$(TEST_RESROOT)$(D)jvmtitest.jar$(P)$(LIB_DIR)$(D)asm-all.jar$(Q) \
 	-DEXE=$(SQ)$(JAVA_COMMAND) $(JVM_OPTIONS) -Xdump $(SQ) \
 	-DMODE_HINTS=$(Q)$(MODE_HINTS)$(Q) \
 	-jar $(CMDLINETESTER_JAR) \

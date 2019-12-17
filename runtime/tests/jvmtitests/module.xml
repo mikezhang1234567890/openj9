@@ -207,6 +207,8 @@
 		<export name="Java_com_ibm_jvmti_tests_getSystemProperty_gsp001_cleanup" />
 		<export name="Java_com_ibm_jvmti_tests_eventException_ee001_invoke" />
 		<export name="Java_com_ibm_jvmti_tests_eventException_ee001_check" />
+		<export name="Java_com_ibm_jvmti_tests_getConstantPool_gcp002_constantPoolBytesWrapper" />
+		<export name="Java_com_ibm_jvmti_tests_getConstantPool_gcp002_constantPoolCountWrapper" />
 	</exports>
 		
 	<exports group="jdk9">

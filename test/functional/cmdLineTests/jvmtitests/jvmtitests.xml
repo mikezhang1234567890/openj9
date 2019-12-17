@@ -421,4 +421,8 @@
 		<command>$EXE$ $JVM_OPTS$ $AGENTLIB$=test:ee001 -cp $Q$$JAR$$Q$ $TESTRUNNER$</command>
 		<return type="success" value="0"/>
 	</test>
+	<test id="gcp002">
+		<command>$EXE$ $JVM_OPTS$ $AGENTLIB$=test:gcp002 -cp $Q$$JAR$$Q$ $TESTRUNNER$</command>
+		<return type="success" value="0"/>
+	</test>
 </suite>

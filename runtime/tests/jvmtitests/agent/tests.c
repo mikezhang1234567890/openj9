@@ -127,6 +127,8 @@ static jvmtiTest jvmtiTestList[] =
 	{ "rnwr001",   rnwr001,   "com.ibm.jvmti.tests.registerNativesWithRetransformation.rnwr001", "Test RegisterNatives JNI API in FSD" },
 	{ "aln001",    aln001,    "com.ibm.jvmti.tests.agentLibraryNatives.aln001",               "Test natives in agent libraries" },
 	{ "rbc001",   rbc001,   "com.ibm.jvmti.tests.redefineBreakpointCombo.rbc001", "Test Redefine-breakpoint combination"},
+	{ "gcp002",   gcp002,   "com.ibm.jvmti.tests.getConstantPool.gcp002", "Test GetConstantPool - helpers for java testing of constant pool correctness"},
+
 #if JAVA_SPEC_VERSION >= 9
 	{ "mt001",   mt001,   "com.ibm.jvmti.tests.modularityTests.mt001", "Test Modularity functions"},
 #endif /* JAVA_SPEC_VERSION >= 9 */
