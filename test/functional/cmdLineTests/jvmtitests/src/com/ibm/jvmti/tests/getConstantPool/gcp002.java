@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2001, 2018 IBM Corp. and others
+ * Copyright (c) 2020, 2020 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -49,53 +49,55 @@ public class gcp002
 	private static native int constantPoolCountWrapper(Class c);
 
 	public boolean testGetConstantPool() throws Exception {
-		/**
-		 * Use asm's ClassReader and ClassWriter to test the constant pool for
-		 * us. In order to create the ClassWriter, the constructor goes through
-		 * and validates the constant pool.
-		 */
-		Class clazz = gcp_testClass.class;
+		byte[] generatedBytes = GcpClassGenerator.generateClass("gcpTest");
+		GcpClassGenerator.dumpToFile("gcpTest.class", generatedBytes);
+
+		CustomClassLoader cl = new CustomClassLoader();
+		Class clazz = cl.getClass("gcpTest", generatedBytes);
+	
 		byte[] cp = constantPoolBytesWrapper(clazz);
 		int count = constantPoolCountWrapper(clazz);
+		GcpClassGenerator.dumpToFile("gcpTest_cp", cp);
+		System.out.println("generated size:" + generatedBytes.length + " class: " + clazz.getName() + " cp count: " + count + " cp bytes: " + cp.length);
 		int[] cpIndices = indexConstantPool(cp, count);
 		return checkParsingConstantPool(cp, cpIndices);
 	}
 
 	public String helpGetConstantPool() {
-		return "testGetConstantPool uses asm ClassReader to verify constant pool is readable";
+		return "testGetConstantPool verifies constant pool can be parsed";
 	}
 
 	private static boolean checkParsingConstantPool(byte[] cpBytes, int[] cpIndexOffsets) {
 		int cpIndex = 1;
 		while (cpIndex < cpIndexOffsets.length) {
-			int offset = cpIndexOffsets[cpIndex - 1];
+			int byteOffset = cpIndexOffsets[cpIndex]; 
 			int offset1, offset2;
-			switch(cpBytes[offset]) {
+			switch(cpBytes[byteOffset]) {
 				case CONSTANT_Class:
-					offset1 = cpIndexOffsets[readUnsignedShort(cpBytes, offset + 1)];
+					offset1 = cpIndexOffsets[readUnsignedShort(cpBytes, byteOffset + 1)];
 					if (cpBytes[offset1] != CONSTANT_Utf8) {
-						printFailParsingCPEntry("class", cpIndex, offset);
+						printFailParsingCPEntry("class", cpIndex, byteOffset);
 						return false;
 					}
 					break;
 				case CONSTANT_Fieldref:
 				case CONSTANT_Methodref:
 				case CONSTANT_InterfaceMethodref:
-					offset1 = cpIndexOffsets[readUnsignedShort(cpBytes, offset + 1)];
+					offset1 = cpIndexOffsets[readUnsignedShort(cpBytes, byteOffset + 1)];
 					if (cpBytes[offset1] != CONSTANT_Class) {
-						printFailParsingCPEntry("field/method/interfacemethod ref", cpIndex, offset);
+						printFailParsingCPEntry("field/method/interfacemethod ref", cpIndex, byteOffset);
 						return false;
 					}
-					offset2 = cpIndexOffsets[readUnsignedShort(cpBytes, offset + 3)];
+					offset2 = cpIndexOffsets[readUnsignedShort(cpBytes, byteOffset + 3)];
 					if (cpBytes[offset2] != CONSTANT_NameAndType) {
-						printFailParsingCPEntry("field/method/interfacemethod ref", cpIndex, offset);
+						printFailParsingCPEntry("field/method/interfacemethod ref", cpIndex, byteOffset);
 						return false;
 					}
 					break;
 				case CONSTANT_String:
-					offset1 = cpIndexOffsets[readUnsignedShort(cpBytes, offset + 1)];
+					offset1 = cpIndexOffsets[readUnsignedShort(cpBytes, byteOffset + 1)];
 					if (cpBytes[offset1] != CONSTANT_Utf8) {
-						printFailParsingCPEntry("string", cpIndex, offset);
+						printFailParsingCPEntry("string", cpIndex, byteOffset);
 						return false;
 					}
 					break;
@@ -106,75 +108,73 @@ public class gcp002
 				case CONSTANT_Float:
 					break;
 				case CONSTANT_NameAndType:
-					offset1 = cpIndexOffsets[readUnsignedShort(cpBytes, offset + 1)];
+					offset1 = cpIndexOffsets[readUnsignedShort(cpBytes, byteOffset + 1)];
 					if (cpBytes[offset1] != CONSTANT_Utf8) {
-						printFailParsingCPEntry("name and type", cpIndex, offset);
+						printFailParsingCPEntry("name and type", cpIndex, byteOffset);
 						return false;
 					}
-					offset2 = cpIndexOffsets[readUnsignedShort(cpBytes, offset + 3)];
+					offset2 = cpIndexOffsets[readUnsignedShort(cpBytes, byteOffset + 3)];
 					if (cpBytes[offset2] != CONSTANT_Utf8) {
-						printFailParsingCPEntry("name and type", cpIndex, offset);
+						printFailParsingCPEntry("name and type", cpIndex, byteOffset);
 						return false;
 					}
 					break;
 				case CONSTANT_Utf8:
-					int len = readUnsignedShort(cpBytes, offset + 1);
-					if ((offset + 2 + len) < cpIndexOffsets[cpIndex + 1]) {
-						break;
+					int utfEndOffset = readUnsignedShort(cpBytes, byteOffset + 1);
+					for (int i = byteOffset + 3; i < utfEndOffset; i++) {
+						if (cpBytes[i] == 0 || (cpBytes[i] >= 0xf0 && cpBytes[i] <= 0xff)) {
+							printFailParsingCPEntry("utf8", cpIndex, byteOffset);
+							return false;
+						}
 					}
-					printFailParsingCPEntry("utf8", cpIndex, offset);
-					return false;
+					break;
 				case CONSTANT_MethodHandle:
-					int kind = cpBytes[offset + 1];
+					int kind = cpBytes[byteOffset + 1];
 					if (kind >= 1 && kind <=9) {
-						offset1 = cpIndexOffsets[readUnsignedShort(cpBytes, offset + 2)];
+						offset1 = cpIndexOffsets[readUnsignedShort(cpBytes, byteOffset + 2)];
 						if (kind <= 4) {
-							if (cpBytes[offset1] != CONSTANT_Fieldref) {
-								printFailParsingCPEntry("method handle", cpIndex, offset);
-								return false;
+							if (cpBytes[offset1] == CONSTANT_Fieldref) {
+								break;
 							}
 						} else if (kind == 5 || kind == 8) {
-							if (cpBytes[offset1] != CONSTANT_Methodref) {
-								printFailParsingCPEntry("method handle", cpIndex, offset);
-								return false;
+							if (cpBytes[offset1] == CONSTANT_Methodref) {
+								break;
 							}
 						} else if (kind == 6 || kind == 7) {
-							/* for classfile ver 52.0 and up, but we compile with at least Java 8, which is 52.0 */
-							if (cpBytes[offset1] != CONSTANT_Methodref && cpBytes[offset1] != CONSTANT_InterfaceMethodref) {
-								printFailParsingCPEntry("method handle", cpIndex, offset);
-								return false;
+							/* for classfile ver 52.0 and up only, but we compile with at least Java 8, which is 52.0 */
+							if (cpBytes[offset1] == CONSTANT_Methodref || cpBytes[offset1] == CONSTANT_InterfaceMethodref) {
+								break;
 							}
 						}
-						break;
 					}
-					printFailParsingCPEntry("method handle", cpIndex, offset);
+					printFailParsingCPEntry("method handle", cpIndex, byteOffset);
 					return false;
 				case CONSTANT_MethodType:
-					offset1 = cpIndexOffsets[readUnsignedShort(cpBytes, offset + 1)];
+					offset1 = cpIndexOffsets[readUnsignedShort(cpBytes, byteOffset + 1)];
 					if (cpBytes[offset1] != CONSTANT_Utf8) {
-						printFailParsingCPEntry("method type", cpIndex, offset);
+						printFailParsingCPEntry("method type", cpIndex, byteOffset);
 						return false;
 					}
 					break;
 				case CONSTANT_Dynamic:
 				case CONSTANT_InvokeDynamic:
-					offset1 = cpIndexOffsets[readUnsignedShort(cpBytes, offset + 1)];
-					offset2 = cpIndexOffsets[readUnsignedShort(cpBytes, offset + 3)];
+					offset1 = cpIndexOffsets[readUnsignedShort(cpBytes, byteOffset + 1)];
+					offset2 = cpIndexOffsets[readUnsignedShort(cpBytes, byteOffset + 3)];
 					if (cpBytes[offset2] != CONSTANT_NameAndType) {
-						printFailParsingCPEntry("dynamic/invokedynamic", cpIndex, offset);
+						printFailParsingCPEntry("dynamic/invokedynamic", cpIndex, byteOffset);
 						return false;
 					}
 					break;
 				case CONSTANT_Module:
 				case CONSTANT_Package:
-					offset1 = cpIndexOffsets[readUnsignedShort(cpBytes, offset + 1)];
+					offset1 = cpIndexOffsets[readUnsignedShort(cpBytes, byteOffset + 1)];
 					if (cpBytes[offset1] != CONSTANT_Utf8) {
-						printFailParsingCPEntry("module/package", cpIndex, offset);
+						printFailParsingCPEntry("module/package", cpIndex, byteOffset);
 						return false;
 					}
 					break;
 				default:
-					System.out.println("Unknown cp entry at index " + cpIndex + ", offset " + offset + "in the cp bytes array.");
+					System.out.println("Unknown cp entry at index " + cpIndex + ", offset " + byteOffset + "in the cp bytes array.");
 					return false;
 			}
 			cpIndex++;
@@ -239,5 +239,32 @@ public class gcp002
 	private static void printFailParsingCPEntry(String entry, int index, int offset) {
 		System.out.println("Failed parsing " + entry + " cp entry at index " + index + ", offset " + offset + " in the cp bytes array.");
 
+	}
+
+	private static boolean isUtfFieldDescriptor(byte[] bytes, int offset) {
+		int len = readUnsignedShort(bytes, offset + 1);
+		int end = offset + 3 + len;
+		int index = offset + 3;
+		while (bytes[index] == '[') {
+			index++;
+		}
+		if ("BCDFIJSZ".contains(bytes[index])) {
+			index++;
+		} else if (bytes.index == 'L') {
+			index++;
+			int index2 = index;
+			while (index < end && bytes[index] != ';') {
+				if (!Character.isisJavaIdentifierPart(bytes[index2])) {
+					break;
+				}
+				index2++;
+			}
+			bytes[index2] != ';'
+		}
+
+		if (index == end) {
+			return true;
+		}
+		return false;
 	}
 }

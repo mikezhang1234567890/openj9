@@ -26,8 +26,9 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
-public class gcp_testClass2 {
+public class gcp_testClass {
     public interface gcp_interface {
+        //constant_interfacemethodref
         public int anInterfaceMethod();
     }
     public class gcp_implements implements gcp_interface {
@@ -57,7 +58,7 @@ public class gcp_testClass2 {
         long l1 = 0xccddeeff;
         gcp_interface lambda = () -> 2;
         int lambdaResult = lambda.anInterfaceMethod();
-        final gcp_staticClass constant2 = (gcp_staticClass) ConstantBootstraps.getStaticFinal(MethodHandles.lookup(), "constant1", gcp_staticClass.class, gcp_testClass2.class);
+        final gcp_staticClass constant2 = (gcp_staticClass) ConstantBootstraps.getStaticFinal(MethodHandles.lookup(), "constant1", gcp_staticClass.class, gcp_testClass.class);
 
 
 
