@@ -36,7 +36,7 @@
 	<property name="src_80" location="./src_80"/>
 	<property name="src_90" location="./src_90"/>
 	<property name="build" location="./bin"/>
-	<property name="asm.jar" location="${LIB_DIR}/asm-all.jar" />
+	<property name="asm.jar" location="${LIB_DIR}/asm-7.3.jar" />
 
 	<target name="init">
 		<mkdir dir="${build}" />
@@ -59,6 +59,7 @@
 					<src path="${src_80}"/>
 					<classpath>
 						<pathelement location="${asm.jar}" />
+						<pathelement location="${LIB_DIR}/asm-all.jar" />
 						<pathelement location="${TEST_JDK_HOME}/lib/tools.jar" />
 					</classpath>
 				</javac>
@@ -84,6 +85,7 @@
 					<compilerarg line="${addExports}" />
 					<classpath>
 						<pathelement location="${asm.jar}" />
+						<pathelement location="${LIB_DIR}/asm-all.jar" />
 					</classpath>
 				</javac>
 			</else>
