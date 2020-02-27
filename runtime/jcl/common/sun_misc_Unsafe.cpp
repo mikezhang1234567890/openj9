@@ -861,7 +861,10 @@ Java_jdk_internal_misc_Unsafe_objectFieldOffset1(JNIEnv *env, jobject receiver, 
 void JNICALL
 Java_jdk_internal_misc_Unsafe_writebackMemory(JNIEnv *env, jobject receiver, jlong addr, jlong len)
 {
-#if (defined(J9X86) || defined(J9HAMMER))
+/* Exclude Windows since it does not support GCC assembly syntax,
+ * and Linux is the only target actually specified in JEP 352
+ */
+#if ((defined(J9X86) || defined(J9HAMMER)) && !defined(WIN32))
 	J9VMThread *currentThread = (J9VMThread*)env;
 	J9JavaVM *vm = currentThread->javaVM;
 	uintptr_t cacheLineSize = vm->dCacheLineSize;
@@ -897,9 +900,9 @@ Java_jdk_internal_misc_Unsafe_writebackMemory(JNIEnv *env, jobject receiver, jlo
 		VM_AtomicSupport::readWriteBarrier();
 		return;
 	}
+error:
 #endif /* x86 */
 
-error:
 	jclass exceptionClass = env->FindClass("java/lang/RuntimeException");
 	if (exceptionClass == NULL) {
 		/* Just return if we can't load the exception class. */
@@ -920,7 +923,7 @@ Java_jdk_internal_misc_Unsafe_isWritebackEnabled(JNIEnv *env, jclass clazz)
 	J9VMThread *currentThread = (J9VMThread*)env;
 	J9JavaVM *vm = currentThread->javaVM;
 	jboolean result = JNI_FALSE;
-#if (defined(J9X86) || defined(J9HAMMER))
+#if ((defined(J9X86) || defined(J9HAMMER)) && !defined(WIN32))
 	if (vm->dCacheLineSize > 0) {
 		switch(vm->cpuCacheWritebackCapabilities) {
 			case J9PORT_X86_FEATURE_CLWB:
