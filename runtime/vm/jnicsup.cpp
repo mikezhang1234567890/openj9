@@ -581,6 +581,7 @@ static jmethodID JNICALL getMethodID(JNIEnv *env, jclass clazz, const char *name
 
 
 static jint JNICALL getJavaVM(JNIEnv *env, JavaVM **vm) {
+	fprintf(stderr, "getJavaVM env: %p\n",env);
 	*vm = (JavaVM*)((J9VMThread*)env)->javaVM;
 	return 0;
 }

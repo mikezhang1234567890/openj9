@@ -160,6 +160,7 @@ vmi_getInitArgs(VMInterface* vmi)
 static JavaVM* JNICALL
 vmi_getJavaVM(VMInterface* vmi)
 {
+	fprintf(stderr, "vmi_getJavaVM env:\n");
 	return (JavaVM*)(((J9VMInterface*)vmi)->javaVM);
 }
 

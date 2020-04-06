@@ -4040,6 +4040,7 @@ checkGetJavaVM(JNIEnv *env, JavaVM **vm)
 	static const U_32 argDescriptor[] = { JNIC_POINTER, 0 };
 	static const char function[] = "GetJavaVM";
 
+	fprintf(stderr, "checkjavavm env: %p\n",env);
 	jniCheckArgs(function, 0, CRITICAL_WARN, &refTracking, argDescriptor, env, vm);
 	actualResult = j9vm->EsJNIFunctions->GetJavaVM(env, vm);
 	jniCheckFlushJNICache(env);
