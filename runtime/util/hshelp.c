@@ -3531,6 +3531,15 @@ reloadROMClasses(J9VMThread * currentThread, jint class_count, const jvmtiClassD
 		loadData.protectionDomain = J9VMJAVALANGCLASS_PROTECTIONDOMAIN(currentThread, heapClass);
 		loadData.options = options;
 
+		if ((J2SE_VERSION(vm) >= J2SE_V11) && J9_ARE_ALL_BITS_SET(originalRAMClass->classFlags, J9ClassIsAnonymous)) {
+			J9ROMClass *hostROMClass = originalRAMClass->hostClass->romClass;
+			loadData.hostPackageName = J9UTF8_DATA(J9ROMCLASS_CLASSNAME(hostROMClass));;
+			loadData.hostPackageLength = packageNameLength(hostROMClass);
+		} else {
+			loadData.hostPackageName = NULL;
+			loadData.hostPackageLength = 0;
+		}
+
 
 		loadData.freeUserData = NULL;
 		loadData.freeFunction = NULL;
