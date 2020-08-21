@@ -3544,7 +3544,13 @@ reloadROMClasses(J9VMThread * currentThread, jint class_count, const jvmtiClassD
 		loadData.freeUserData = NULL;
 		loadData.freeFunction = NULL;
 		loadData.romClass = NULL;
+		if ((options & J9_FINDCLASS_FLAG_RETRANSFORMING) || (options & J9_FINDCLASS_FLAG_REDEFINING)) {
+			fprintf(stderr,"reloadROMClasses before internalLoadROMClassFunction\n");
+		}
 		loadRC = vm->dynamicLoadBuffers->internalLoadROMClassFunction(currentThread, &loadData, &localBuffer);
+		if ((options & J9_FINDCLASS_FLAG_RETRANSFORMING) || (options & J9_FINDCLASS_FLAG_REDEFINING)) {
+			fprintf(stderr,"reloadROMClasses after internalLoadROMClassFunction\n");
+		}
 
 		if (loadRC == BCT_ERR_NO_ERROR) {
 

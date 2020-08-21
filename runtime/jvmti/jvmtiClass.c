@@ -1115,7 +1115,6 @@ redefineClassesCommon(jvmtiEnv* env,
 	extensionsEnabled = areExtensionsEnabled(vm);
 	
 	/* Verify that all of the classes are allowed to be replaced */
-
 	rc = verifyClassesCanBeReplaced(currentThread, class_count, class_definitions);
 	if (rc != JVMTI_ERROR_NONE) {
 		return rc;
@@ -1130,12 +1129,16 @@ redefineClassesCommon(jvmtiEnv* env,
 	memset(specifiedClasses, 0, class_count * sizeof(J9JVMTIClassPair));
 	
 	/* Create ROM classes for each of the replaced classes */
-
+	if ((options & J9_FINDCLASS_FLAG_RETRANSFORMING) || (options & J9_FINDCLASS_FLAG_REDEFINING)) {
+		fprintf(stderr,"redefineClassesCommon before reloadROMClasses\n");
+	}
 	rc = reloadROMClasses(currentThread, class_count, class_definitions, specifiedClasses, options);
 	if (rc != JVMTI_ERROR_NONE) {
 		goto failed;
 	}
-
+	if ((options & J9_FINDCLASS_FLAG_RETRANSFORMING) || (options & J9_FINDCLASS_FLAG_REDEFINING)) {
+		fprintf(stderr,"redefineClassesCommon after reloadROMClasses\n");
+	}
 	/* Make sure the replaced classes are compatible with the old versions */
 
 	rc = verifyClassesAreCompatible(currentThread, class_count, specifiedClasses, extensionsEnabled, &extensionsUsed);
@@ -1510,6 +1513,8 @@ jvmtiRetransformClasses(jvmtiEnv* env,
 			memset(class_definitions, 0, class_count * sizeof(jvmtiClassDefinition));
 
 			omrthread_monitor_enter(classSegments->segmentMutex);
+			U_8 hasAnonClass = 0;
+			U_8 hasNamedClass = 0;
 			for (i = 0; i < class_count; ++i) {
 				jclass klass;
 				J9Class * clazz;
@@ -1523,6 +1528,22 @@ jvmtiRetransformClasses(jvmtiEnv* env,
 				}
 
 				clazz = J9VM_J9CLASS_FROM_JCLASS(currentThread, klass);
+
+				U_8 *className = J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass));
+				char *anonClassName = "AnonClass";
+				char *namedClassName = "NamedDummyClass";
+				U_8 isAnonClass = (0 == memcmp(className, anonClassName, 9));
+				U_8 isNamedClass = (0 == memcmp(className, namedClassName, 16));				
+				hasAnonClass = isAnonClass | hasAnonClass;
+				hasNamedClass = isNamedClass | hasNamedClass;
+				if (isAnonClass) {
+					fprintf(stderr, "RETRANSFORM found anon class\n");
+				}
+				if (isNamedClass) {
+					fprintf(stderr, "RETRANSFORM found named class\n");
+				}
+
+
 				if (!classIsModifiable(vm, clazz)) {
 					rc = JVMTI_ERROR_UNMODIFIABLE_CLASS;
 					break;
@@ -1533,6 +1554,9 @@ jvmtiRetransformClasses(jvmtiEnv* env,
 				}
 
 				if (!J9ROMCLASS_IS_INTERMEDIATE_DATA_A_CLASSFILE(clazz->romClass)) {
+					if (isAnonClass || isNamedClass) {
+						fprintf(stderr, "RETRANSFORM starting main path transformROMClassFunction\n");
+					}
 					J9ROMClass * intermediateROMClass = (J9ROMClass *) J9ROMCLASS_INTERMEDIATECLASSDATA(clazz->romClass);
 					IDATA result = 0;
 
@@ -1546,7 +1570,13 @@ jvmtiRetransformClasses(jvmtiEnv* env,
 						}
 						break;
 					}
+					if (isAnonClass || isNamedClass) {
+						fprintf(stderr, "RETRANSFORM after transformROMClassFunction\n");
+					}
 				} else {
+					if (isAnonClass || isNamedClass) {
+						fprintf(stderr, "RETRANSFORM other path has intermediate data\n");
+					}
 					classFileBytesCount = (jint) clazz->romClass->intermediateClassDataLength;
 					classFileBytes = WSRP_GET(clazz->romClass->intermediateClassData, U_8*);
 				}
@@ -1557,7 +1587,13 @@ jvmtiRetransformClasses(jvmtiEnv* env,
 			omrthread_monitor_exit(classSegments->segmentMutex);
 
 			if (rc == JVMTI_ERROR_NONE) {
+				if (hasAnonClass || hasNamedClass) {
+					fprintf(stderr, "RETRANSFORM running redefineClassesCommon\n");
+				}
 				rc = redefineClassesCommon(env, class_count, class_definitions, currentThread, J9_FINDCLASS_FLAG_RETRANSFORMING);
+				if (hasAnonClass || hasNamedClass) {
+					fprintf(stderr, "RETRANSFORM done redefineClassesCommon\n");
+				}
 			}
 
 			/* free classFileBytes returned by j9bcutil_transformROMClass */

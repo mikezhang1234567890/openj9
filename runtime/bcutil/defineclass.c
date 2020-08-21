@@ -326,6 +326,9 @@ internalLoadROMClass(J9VMThread * vmThread, J9LoadROMClassData *loadData, J9Tran
 	/*This block of code is disabled until CMVC 155494 is resolved. Otherwise it will block cbuilds*/
 	Trc_Assert_BCU_mustHaveVMAccess(vmThread);
 #endif
+	if ((loadData->options & J9_FINDCLASS_FLAG_RETRANSFORMING) || (loadData->options & J9_FINDCLASS_FLAG_REDEFINING)) {
+		fprintf(stderr,"internalLoadROMClass start function\n");
+	}
 
 	/* Call the class load hook to potentially replace the class data */
 
@@ -347,7 +350,13 @@ internalLoadROMClass(J9VMThread * vmThread, J9LoadROMClassData *loadData, J9Tran
 			IDATA result = 0;
 			J9ROMClass * intermediateROMClass = (J9ROMClass *) loadData->classData;
 
+			if ((loadData->options & J9_FINDCLASS_FLAG_RETRANSFORMING) || (loadData->options & J9_FINDCLASS_FLAG_REDEFINING)) {
+				fprintf(stderr,"internalLoadROMClass before j9bcutil_transformROMClass\n");
+			}
 			result = j9bcutil_transformROMClass(vm, PORTLIB, intermediateROMClass, &classFileBytes, &classFileBytesCount);
+			if ((loadData->options & J9_FINDCLASS_FLAG_RETRANSFORMING) || (loadData->options & J9_FINDCLASS_FLAG_REDEFINING)) {
+				fprintf(stderr,"internalLoadROMClass after j9bcutil_transformROMClass\n");
+			}
 			if (BCT_ERR_NO_ERROR != result) {
 				Trc_BCU_internalLoadROMClass_ErrorInRecreatingClassfile(vmThread, intermediateROMClass, result);
 				goto done;
@@ -401,6 +410,9 @@ internalLoadROMClass(J9VMThread * vmThread, J9LoadROMClassData *loadData, J9Tran
 #endif
 
 		if ((loadData->options & J9_FINDCLASS_FLAG_RETRANSFORMING) == 0) {
+			if ((loadData->options & J9_FINDCLASS_FLAG_RETRANSFORMING) || (loadData->options & J9_FINDCLASS_FLAG_REDEFINING)) {
+				fprintf(stderr,"internalLoadROMClass before class load hook #1\n");
+			}
 			ALWAYS_TRIGGER_J9HOOK_VM_CLASS_LOAD_HOOK(vm->hookInterface,
 				vmThread,
 				loadData->classLoader,
@@ -412,6 +424,9 @@ internalLoadROMClass(J9VMThread * vmThread, J9LoadROMClassData *loadData, J9Tran
 				loadData->freeUserData,
 				loadData->freeFunction,
 				classFileBytesReplacedByRIA);
+		}
+		if ((loadData->options & J9_FINDCLASS_FLAG_RETRANSFORMING) || (loadData->options & J9_FINDCLASS_FLAG_REDEFINING)) {
+			fprintf(stderr,"internalLoadROMClass after class load hook #1\n");
 		}
 
 		/* Record the bytes from the above hook call */
@@ -425,7 +440,9 @@ internalLoadROMClass(J9VMThread * vmThread, J9LoadROMClassData *loadData, J9Tran
 #if defined(J9VM_OPT_JVMTI)
 
 		/* Run the second transformation pass */
-
+		if ((loadData->options & J9_FINDCLASS_FLAG_RETRANSFORMING) || (loadData->options & J9_FINDCLASS_FLAG_REDEFINING)) {
+			fprintf(stderr,"internalLoadROMClass before class hook #2\n");
+		}
 		ALWAYS_TRIGGER_J9HOOK_VM_CLASS_LOAD_HOOK2(vm->hookInterface,
 			vmThread,
 			loadData->classLoader,
@@ -438,6 +455,9 @@ internalLoadROMClass(J9VMThread * vmThread, J9LoadROMClassData *loadData, J9Tran
 			loadData->freeFunction,
 			classFileBytesReplacedByRCA);
 #endif
+		if ((loadData->options & J9_FINDCLASS_FLAG_RETRANSFORMING) || (loadData->options & J9_FINDCLASS_FLAG_REDEFINING)) {
+			fprintf(stderr,"internalLoadROMClass after class hook #2\n");
+		}
 
 #ifdef J9VM_THR_PREEMPTIVE
 		omrthread_monitor_enter(vm->classTableMutex);
@@ -450,6 +470,10 @@ internalLoadROMClass(J9VMThread * vmThread, J9LoadROMClassData *loadData, J9Tran
 
 		Trc_BCU_internalLoadROMClass_ClassLoadHookDone(vmThread);
 	}
+	if ((loadData->options & J9_FINDCLASS_FLAG_RETRANSFORMING) || (loadData->options & J9_FINDCLASS_FLAG_REDEFINING)) {
+		fprintf(stderr,"internalLoadROMClass after big if with transform\n");
+	}
+
 
 	if (J9_ARE_ALL_BITS_SET(loadData->options, J9_FINDCLASS_FLAG_RETRANSFORMING)
 		&& (FALSE == classFileBytesReplacedByRCA)
