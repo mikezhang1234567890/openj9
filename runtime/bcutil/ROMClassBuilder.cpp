@@ -320,7 +320,7 @@ ROMClassBuilder::handleAnonClassName(J9CfrClassFile *classfile, bool *isLambda, 
 	}
 
 	/* calculate the size of the new string and create new cpEntry*/
-	anonClassName->slot1 = newAnonClassNameLength - 1;
+	anonClassName->slot1 = (U_32)newAnonClassNameLength - 1;
 	if (newCPEntry) {
 		anonClassName->slot2 = 0;
 		anonClassName->tag = CFR_CONSTANT_Utf8;
