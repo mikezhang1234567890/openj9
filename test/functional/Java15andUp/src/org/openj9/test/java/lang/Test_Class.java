@@ -1,7 +1,7 @@
 package org.openj9.test.java.lang;
 
 /*******************************************************************************
- * Copyright (c) 2020, 2020 IBM Corp. and others
+ * Copyright (c) 2020, 2021 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -23,72 +23,73 @@ package org.openj9.test.java.lang;
  *******************************************************************************/
 
 import org.testng.annotations.Test;
-
+import org.testng.Assert;
 import org.testng.AssertJUnit;
-
-import java.lang.constant.ClassDesc;
 
 /**
  * Test JCL additions to java.lang.Class from JEP 360: Sealed Classes preview
+ * and JEP 397: Sealed Classes (Second Preview)
  * 
  * New methods include:
  * - boolean isRecord()
- * - ClassDesc[] permittedSubclasses()
+ * - Class<?>[] getPermittedSubclasses()
  */
 
  @Test(groups = { "level.sanity" })
  public class Test_Class {
-    /* Test classes */
-    class TestClassNotSealed {}
+	/* Test classes */
+	class TestClassNotSealed {}
 
-    sealed class TestClassSealed permits TestSubclass {}
-    non-sealed class TestSubclass extends TestClassSealed {}
+	sealed class TestClassSealed permits TestSubclass {}
+	non-sealed class TestSubclass extends TestClassSealed {}
 
-    sealed class TestClassSealedMulti permits TestSubclass1, TestSubclass2, TestSubclass3 {}
-    non-sealed class TestSubclass1 extends TestClassSealedMulti {}
-    non-sealed class TestSubclass2 extends TestClassSealedMulti {}
-    non-sealed class TestSubclass3 extends TestClassSealedMulti {}
+	sealed class TestClassSealedMulti permits TestSubclass1, TestSubclass2, TestSubclass3 {}
+	non-sealed class TestSubclass1 extends TestClassSealedMulti {}
+	non-sealed class TestSubclass2 extends TestClassSealedMulti {}
+	non-sealed class TestSubclass3 extends TestClassSealedMulti {}
 
-    @Test
-    public void test_isSealed() {
-        AssertJUnit.assertFalse("TestClassNotSealed is not a sealed class", TestClassNotSealed.class.isSealed());
-        AssertJUnit.assertTrue("TestClassSealed is a sealed class", TestClassSealed.class.isSealed());
-        AssertJUnit.assertFalse("TestSubclass is not a sealed class", TestSubclass.class.isSealed());
-        AssertJUnit.assertFalse("Primitive type is not a sealed class", int.class.isSealed());
-        TestClassSealed[] sealedArray = new TestClassSealed[1];
-        AssertJUnit.assertFalse("Array class is not a sealed class", sealedArray.getClass().isSealed());
-    }
+	@Test
+	public void test_isSealed() {
+		AssertJUnit.assertFalse("TestClassNotSealed is not a sealed class", TestClassNotSealed.class.isSealed());
+		AssertJUnit.assertTrue("TestClassSealed is a sealed class", TestClassSealed.class.isSealed());
+		AssertJUnit.assertFalse("TestSubclass is not a sealed class", TestSubclass.class.isSealed());
+		AssertJUnit.assertFalse("Primitive type is not a sealed class", int.class.isSealed());
+		TestClassSealed[] sealedArray = new TestClassSealed[1];
+		AssertJUnit.assertFalse("Array class is not a sealed class", sealedArray.getClass().isSealed());
+	}
 
-    @Test
-    public void test_permittedSubclasses_nonSealedClass() {
-        ClassDesc[] subclasses = TestClassNotSealed.class.permittedSubclasses();
+	@Test
+	public void test_getPermittedSubclasses_nonSealedClass() {
+		Class<?>[] subclasses = TestClassNotSealed.class.getPermittedSubclasses();
+		Assert.assertNull(subclasses);
+		subclasses = int.class.getPermittedSubclasses();
+		Assert.assertNull(subclasses);
+		TestClassSealed[] sealedArray = new TestClassSealed[1];
+		subclasses = sealedArray.getClass().getPermittedSubclasses();
+		Assert.assertNull(subclasses);
+	}
 
-        AssertJUnit.assertTrue(0 == subclasses.length);
-    }
+	@Test
+	public void test_getPermittedSubclasses_oneSubclass() {
+		Class<?>[] subclassList = TestClassSealed.class.getPermittedSubclasses();
 
-    @Test
-    public void test_permittedSubclasses_oneSubclass() {
-        ClassDesc[] subclassList = TestClassSealed.class.permittedSubclasses();
+		AssertJUnit.assertEquals(1, subclassList.length);
 
-        AssertJUnit.assertEquals(1, subclassList.length);
+		Class<?> sub = TestSubclass.class;
+		AssertJUnit.assertEquals(sub, subclassList[0]);
+	}
 
-        /* verify ClassDesc content */
-        ClassDesc desc = TestSubclass.class.describeConstable().get();
-        AssertJUnit.assertEquals(desc, subclassList[0]);
-    }
+	@Test
+	public void test_getPermittedSubclasses_multiSubclasses() {
+		Class<?>[] multiSubclassesList = TestClassSealedMulti.class.getPermittedSubclasses();
 
-    @Test
-    public void test_permittedSubclasses_multiSubclasses() {
-        ClassDesc[] multiSubclassesList = TestClassSealedMulti.class.permittedSubclasses();
+		AssertJUnit.assertEquals(3, multiSubclassesList.length);
 
-        AssertJUnit.assertEquals(3, multiSubclassesList.length);
-
-        /* verify ClassDesc content */
-        ClassDesc desc1 = TestSubclass1.class.describeConstable().get();
-        AssertJUnit.assertEquals(desc1, multiSubclassesList[0]);
-        ClassDesc desc2 = TestSubclass2.class.describeConstable().get();
-        AssertJUnit.assertEquals(desc2, multiSubclassesList[1]);
-        ClassDesc desc3 = TestSubclass3.class.describeConstable().get();
-        AssertJUnit.assertEquals(desc3, multiSubclassesList[2]);
-    }
+		Class<?> sub1 = TestSubclass1.class;
+		AssertJUnit.assertEquals(sub1, multiSubclassesList[0]);
+		Class<?> sub2 = TestSubclass2.class;
+		AssertJUnit.assertEquals(sub2, multiSubclassesList[1]);
+		Class<?> sub3 = TestSubclass3.class;
+		AssertJUnit.assertEquals(sub3, multiSubclassesList[2]);
+	}
  }
