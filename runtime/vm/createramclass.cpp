@@ -1690,7 +1690,11 @@ loadSuperClassAndInterfaces(J9VMThread *vmThread, J9ClassLoader *classLoader, J9
 				return FALSE;
 			}
 		}
-
+	
+		if (memcmp(J9UTF8_DATA(className), "javasoft/sqe/tests", 18) == 0) {
+			printf("loadSuperClassAndInterfaces - finding super %.*s for %.*s\n", 
+				(int)J9UTF8_LENGTH(superclassName), J9UTF8_DATA(superclassName), J9UTF8_LENGTH(className), J9UTF8_DATA(className));
+		}
 		superclass = internalFindClassUTF8(vmThread, J9UTF8_DATA(superclassName), J9UTF8_LENGTH(superclassName), classLoader, classPreloadFlags);
 		*superclassOut = superclass;
 		Trc_VM_CreateRAMClassFromROMClass_loadedSuperclass(vmThread, J9UTF8_LENGTH(superclassName), J9UTF8_DATA(superclassName), superclass);

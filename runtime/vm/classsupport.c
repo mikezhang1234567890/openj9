@@ -698,11 +698,31 @@ callLoadClass(J9VMThread* vmThread, U_8* className, UDATA classNameLength, J9Cla
 
 	Assert_VM_mustHaveVMAccess(vmThread);
 
+	J9JavaVM *vm = vmThread->javaVM;
+	J9InternalVMFunctions *vmFuncs = vm->internalVMFunctions;
+	j9object_t classLoaderName = NULL;
+	if (NULL != classLoader->classLoaderObject) {
+		classLoaderName = J9VMJAVALANGCLASSLOADER_CLASSLOADERNAME(vmThread, classLoader->classLoaderObject);
+	}
+	char classLoaderNameBuf[J9VM_PACKAGE_NAME_BUFFER_LENGTH];
+	char *classLoaderNameUTF = NULL;
+	UDATA classLoaderNameLen = 0;
+
+	if (NULL != classLoaderName) {
+		classLoaderNameUTF = vmFuncs->copyStringToUTF8WithMemAlloc(
+			vmThread, classLoaderName, J9_STR_NULL_TERMINATE_RESULT, "", 0, classLoaderNameBuf, J9VM_PACKAGE_NAME_BUFFER_LENGTH, &classLoaderNameLen);
+	} 
+
+
 	classNameString = vmThread->javaVM->memoryManagerFunctions->j9gc_createJavaLangString(vmThread, className, classNameLength, J9_STR_XLAT);
 	if (classNameString != NULL) {
 		J9JavaVM * vm = vmThread->javaVM;
 
 		Trc_VM_internalFindClass_sendLoadClass(vmThread, classNameLength, className, classNameString, classLoader->classLoaderObject);
+		if (memcmp(className, "javasoft/sqe/tests", 18) == 0) {
+			printf("callLoadClass - sendloadclass on %.*s, str ptr: %p, CL %.*s ptr: %p\n", 
+				(int)classNameLength, className, classNameString, classLoaderNameLen, (NULL == classLoaderNameUTF) ? "" : classLoaderNameUTF, classLoader->classLoaderObject);
+		}
 		sendLoadClass(vmThread, classLoader->classLoaderObject, classNameString);
 		sendLoadClassResult = (j9object_t) vmThread->returnValue;
 		if (NULL == sendLoadClassResult) {
@@ -903,6 +923,10 @@ arbitratedLoadClass(J9VMThread* vmThread, U_8* className, UDATA classNameLength,
 			|| (J9CLASSLOADER_PARALLEL_CAPABLE == (J9CLASSLOADER_PARALLEL_CAPABLE & classLoader->flags)) /* this loader is parallel capable */
 	) {
 		/* start old algorithm */
+		if (memcmp(className, "javasoft/sqe/tests", 18) == 0) {
+			printf("arbitratedLoadClass - old algo on %.*s\n", (int)classNameLength, className);
+		}
+
 		omrthread_monitor_exit(vmThread->javaVM->classTableMutex);
 		foundClass = callLoadClass(vmThread, className, classNameLength, classLoader, classNotFoundException);
 		omrthread_monitor_enter(vmThread->javaVM->classTableMutex);
@@ -911,6 +935,9 @@ arbitratedLoadClass(J9VMThread* vmThread, U_8* className, UDATA classNameLength,
 		J9ContendedLoadTableEntry *tableEntry = contendedLoadTableAddThread(vmThread, classLoader, className, classNameLength, CLASSLOADING_LOAD_IN_PROGRESS);
 		U_8 done = 1;
 		UDATA count = 0;
+		if (memcmp(className, "javasoft/sqe/tests", 18) == 0) {
+			printf("arbitratedLoadClass - contended algo on %.*s\n", (int)classNameLength, className);
+		}
 
 		do {
 			if (tableEntry->thread == vmThread) {

@@ -583,6 +583,9 @@ final Class<?> defineClassInternal(
 	/*[PR CMVC 92062] disallow extending restricted packages */
 	/*[PR CMVC 110183] checkPackageAccess() (accessClassInPackage permission) denied when granted access */
 	/*[PR CVMC 124584] checkPackageAccess(), not defineClassImpl(), should use ProtectionDomain */
+	if(className.contains("javasoft.sqe.tests")) {
+		System.out.println("ClassLoader.defineClassInternal - loading " + className + " len: " + length + " offset: " + offset + " bytes: " + classRep.length);
+	}
 	Class<?> answer = defineClassImpl(className, classRep, offset, length, pd);
 
 	if (certs != null) {
@@ -1256,6 +1259,10 @@ public Class<?> loadClass (String className) throws ClassNotFoundException {
  */
 /*[PR CMVC 180958] SVT:HRT:deadlock following class library change to classloader */
 protected Class<?> loadClass(final String className, boolean resolveClass) throws ClassNotFoundException {
+	if(className.contains("javasoft.sqe.tests")) {
+		System.out.println("ClassLoader.loadClass - start " + className);
+	}
+
 	return loadClassHelper(className, resolveClass, true
 /*[IF Sidecar19-SE]*/
 		, null

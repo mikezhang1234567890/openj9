@@ -428,17 +428,51 @@ sendLoadClass(J9VMThread *currentThread, j9object_t classLoaderObject, j9object_
 {
 	Trc_VM_sendLoadClass_Entry(currentThread);
 	J9VMEntryLocalStorage newELS;
+
+	J9JavaVM *vm = currentThread->javaVM;
+	J9InternalVMFunctions *vmFuncs = vm->internalVMFunctions;
+	char utf8NameStackBuffer[J9VM_PACKAGE_NAME_BUFFER_LENGTH];
+	U_8 *utf8Name = NULL;
+	UDATA utf8Length = 0;
+	utf8Name = (U_8*)vmFuncs->copyStringToUTF8WithMemAlloc(currentThread, classNameObject, J9_STR_NULL_TERMINATE_RESULT, "", 0, utf8NameStackBuffer, J9VM_PACKAGE_NAME_BUFFER_LENGTH, &utf8Length);
+	if (utf8Name != NULL && memcmp(utf8Name, "javasoft.sqe.tests", 18) == 0) {
+		printf("sendLoadClass - for %.*s before new frame, sp: %p, pc: %p\n", (int)utf8Length, utf8Name, currentThread->sp, currentThread->pc);
+	}
+
 	if (buildCallInStackFrame(currentThread, &newELS, true, false)) {
 		/* Run the method from the vTable */
+		if (utf8Name != NULL && memcmp(utf8Name, "javasoft.sqe.tests", 18) == 0) {
+			printf("sendLoadClass - for %.*s in new frame 1, sp: %p, pc: %p, sp deref: %p\n", 
+				(int)utf8Length, utf8Name, currentThread->sp, currentThread->pc, (currentThread->sp == NULL)?NULL:*(currentThread->sp));
+		}
 		UDATA vTableOffset = J9VMJAVALANGCLASSLOADER_LOADCLASS_REF(currentThread->javaVM)->methodIndexAndArgCount >> 8;
 		J9Class *classLoaderClass = J9OBJECT_CLAZZ(currentThread, classLoaderObject);
 		J9Method *method = *(J9Method**)(((UDATA)classLoaderClass) + vTableOffset);
 		*--currentThread->sp = (UDATA)classLoaderObject;
+		if (utf8Name != NULL && memcmp(utf8Name, "javasoft.sqe.tests", 18) == 0) {
+			printf("sendLoadClass - for %.*s in new frame 2, sp: %p, pc: %p, sp deref: %p\n", 
+				(int)utf8Length, utf8Name, currentThread->sp, currentThread->pc, (currentThread->sp == NULL)?NULL:*(currentThread->sp));
+		}
+
 		*--currentThread->sp = (UDATA)classNameObject;
+		if (utf8Name != NULL && memcmp(utf8Name, "javasoft.sqe.tests", 18) == 0) {
+			printf("sendLoadClass - for %.*s in new frame 3, sp: %p, pc: %p, sp deref: %p\n", 
+				(int)utf8Length, utf8Name, currentThread->sp, currentThread->pc, (currentThread->sp == NULL)?NULL:*(currentThread->sp));
+		}
+
 		currentThread->returnValue = J9_BCLOOP_RUN_METHOD;
 		currentThread->returnValue2 = (UDATA)method;
+		if (utf8Name != NULL && memcmp(utf8Name, "javasoft.sqe.tests", 18) == 0) {
+			printf("sendLoadClass - for %.*s in new frame 4, sp: %p, pc: %p, sp deref: %p\n", 
+				(int)utf8Length, utf8Name, currentThread->sp, currentThread->pc, (currentThread->sp == NULL)?NULL:*(currentThread->sp));
+		}
+
 		c_cInterpreter(currentThread);
 		restoreCallInFrame(currentThread);
+
+	}
+	if (utf8Name != NULL && memcmp(utf8Name, "javasoft.sqe.tests", 18) == 0) {
+		printf("sendLoadClass - for %.*s after new frame, sp: %p, pc: %p\n", (int)utf8Length, utf8Name, currentThread->sp, currentThread->pc);
 	}
 	Trc_VM_sendLoadClass_Exit(currentThread);
 }
